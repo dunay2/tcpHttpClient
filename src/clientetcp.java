@@ -3,48 +3,61 @@ import java.io.*;
 
 public class clientetcp {
 
-    public static void main(String argv[]) throws IOException {
+	static final byte HTTP_PORT = 80;
+	static final String MY_MAIL = "mymail@server.edu";
 
-        /*
-         * Leemos los argumentos del programa para saber a qué
-         * servidor hay que conectarse.
-         */
-        if (argv.length == 0) {
-            System.err.println("java clientetcp servidor");
-            System.exit(1);
-        }
+	public static void main(String argv[]) throws IOException {
 
-        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-        Socket socket = null;
-        InetAddress address;
-        byte[] mensaje_bytes = new byte[256];
-        String mensaje = "";
+		if (argv.length == 0) {
+			System.err.println("java clientetcp servidor");
+			System.exit(1);
+		}
 
-        try {
-            /*
-             * Establecemos una conexión con el servidor en el puerto 6001 y 
-             * enviamos lo que el usuario escribe por teclado. Acabamos con la
-             * palabra end.
-             */
-            address = InetAddress.getByName(argv[0]);
-            socket = new Socket(address, 6001);
-            DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+		Socket socket = null;
+		InetAddress address;
+		String mensaje = "";
 
-            do {
-                mensaje = in.readLine();
-                out.writeUTF(mensaje);
-            } while (!mensaje.startsWith("end"));
+		try {
+			/*
+			 * Establish HTTP connection with remote server
+			 */
+			address = InetAddress.getByName(argv[0]);
+			String serverName = argv[0];
+			socket = new Socket(address, HTTP_PORT);
+			DataOutputStream out = new DataOutputStream(socket.getOutputStream());
 
-        } catch (Exception e) {
-            System.err.println(e.getMessage());
-            System.exit(1);
-        } finally {
+			mensaje = "OPTIONS / HTTP/1.1\r\n";
+			mensaje = mensaje + "User-Agent: " + MY_MAIL + "\r\n";
+			mensaje = mensaje + "Accept: */*\r\n";
+			mensaje = mensaje + "Cache-Control: no-cache\r\n";
+			mensaje = mensaje + "Host: " + serverName + "\r\n";
+			mensaje = mensaje + "accept-encoding: gzip, deflate\r\n";
+			mensaje = mensaje + "content-length: 0\r\n";
+			mensaje = mensaje + "Connection: keep-alive\r\n";
+			mensaje = mensaje + "\r\n";
 
-            if (socket != null) {
-                System.out.println("Cerrando socket cliente ...");
-                socket.close();
-            }
-        }
+			System.out.println(mensaje);
 
-    }
+			out.writeBytes(mensaje);
+
+			// Get response
+			BufferedReader rd = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+			String line;
+
+			while ((line = rd.readLine()) != null) {
+				System.out.println(line);
+			}
+
+		} catch (Exception e) {
+			System.err.println(e.getMessage());
+			System.exit(1);
+		} finally {
+
+			if (socket != null) {
+				System.out.println("Cerrando socket cliente ...");
+				socket.close();
+			}
+		}
+
+	}
 }
